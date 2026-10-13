@@ -25,7 +25,7 @@ Eve sleep case study/
 # Impeccable working state (review captures, surface briefs)
 .impeccable/
 
-# Styling for the embedded GoHighLevel contact form. It is pasted into the GHL
-# form builder, never served from here, and publishing it only put a stray
+# Styling for the embedded GoHighLevel forms. It is pasted into the GHL form
+# builder, never served from here, and publishing it only put a stray
 # stylesheet on the live site. Kept locally as the reference for that design.
-ghl-contact-form.css
+ghl-forms.css
