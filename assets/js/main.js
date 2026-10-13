@@ -471,15 +471,28 @@
     var key     = frame.getAttribute('data-role-field');
     var loaded  = null;
 
+    function load(role) {
+      // reloading the frame resets a part-filled form, so only on a new role
+      if (!base || role === loaded) return;
+      frame.src = base + (key ? '?' + encodeURIComponent(key) + '=' + encodeURIComponent(role) : '');
+      loaded = role;
+    }
+
     Array.prototype.forEach.call(document.querySelectorAll('[data-open-apply]'), function (btn) {
+      var role = btn.getAttribute('data-role') || '';
+
+      /* The form is a second-and-a-half of someone else's JavaScript, and on
+         click that second and a half is spent staring at an empty panel. Both
+         of these are intent without commitment -- the pointer has arrived, or
+         the button has been tabbed to -- so the fetch starts there and is
+         usually done by the time the dialog opens. Still nothing downloaded
+         for a visitor who only reads the job descriptions. */
+      btn.addEventListener('mouseenter', function () { load(role); });
+      btn.addEventListener('focus', function () { load(role); });
+
       btn.addEventListener('click', function () {
-        var role = btn.getAttribute('data-role') || '';
         if (heading) heading.textContent = role;
-        // reloading the frame resets a part-filled form, so only on a new role
-        if (base && role !== loaded) {
-          frame.src = base + (key ? '?' + encodeURIComponent(key) + '=' + encodeURIComponent(role) : '');
-          loaded = role;
-        }
+        load(role);
         apply.open();
       });
     });

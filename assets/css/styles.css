@@ -1468,8 +1468,19 @@ html{scrollbar-color:rgba(26,24,23,.3) transparent}
 .cmodal__dialog{
   position:relative;
   width:min(520px,100%);
-  max-height:calc(100vh - clamp(28px,8vw,80px));
-  overflow-y:auto;overflow-x:clip;
+  /* A definite height, not a max: a flex child can only be told to fill the
+     leftover space if there is a known amount of it. Capped so a tall desktop
+     does not stretch the panel the full screen. */
+  /* max() puts a floor under it: if 100vh resolves to something tiny the
+     dialog must not collapse to nothing and take the form with it. */
+  height:min(840px,max(420px,calc(100vh - clamp(28px,8vw,80px))));
+  /* A column, so the embedded form can take the leftover height and scroll
+     inside itself. Previously this box scrolled AND the iframe scrolled: you
+     dragged the form, the inner frame moved, it hit its end and the dialog
+     lurched on. One scroll container is the whole fix -- the header stays put
+     and there is only ever one thing moving. */
+  display:flex;flex-direction:column;
+  overflow:hidden;
   background:linear-gradient(180deg,#fffefb,#faf7f0);
   border:1px solid rgba(255,255,255,.7);
   border-radius:var(--r-lg);
@@ -1511,16 +1522,33 @@ html{scrollbar-color:rgba(26,24,23,.3) transparent}
 
    What is left is the frame around it. */
 .cform--ghl{
-  /* the embed script measures the form and writes a height back onto the
-     iframe; min-height is only what it stands at before that lands, so the
-     popup does not visibly jump on open */
-  min-height:620px;
+  /* This is the one scroll container. It takes exactly the height the header
+     leaves -- min-height:0 is what lets a flex child shrink below its content
+     instead of pushing the dialog open -- and the form scrolls inside it. */
+  flex:1 1 auto;min-height:0;
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
 }
 .cform--ghl iframe{
-  display:block;width:100%;min-height:620px;border:0;
+  display:block;width:100%;border:0;
+  /* form_embed.js measures the form and writes the full content height onto
+     this element inline, and an inline style beats this rule -- so when it
+     fires the iframe grows to its content and the wrapper above does the
+     scrolling. When it does not fire (it is not reliable about it), height
+     the iframe stands at its min-height and scrolls itself. Either way exactly
+     one box scrolls, never one inside another.
+
+     No height:100% here: a percentage resolves against the containing block,
+     and in a flex column mid-transition that is not reliably the wrapper. The
+     cost is a little dead space when the script stays quiet, which is a far
+     smaller problem than a form that scrolls inside a scrolling box. */
+  min-height:420px;
   /* the panel behind it is cream; a white iframe would read as a second card */
   background:transparent;
 }
+/* The dialog head must not shrink when the form asks for room, or the logo
+   and title get squeezed to nothing on a short screen. */
+.cmodal__head{flex:0 0 auto}
 
 /* the popup owns the viewport while it is open */
 html.cmodal-open,html.cmodal-open body{overflow:hidden}
