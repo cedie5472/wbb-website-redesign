@@ -1,0 +1,196 @@
+/* ============================================================================
+   Work Beyond Borders — custom CSS for the GoHighLevel contact form
+
+   Not loaded by the site. This is the styling contract for the GHL form that
+   gets embedded in the contact popup, versioned next to the design it mirrors.
+
+   Paste into:  Sites -> Form Builder -> open the form
+                -> Styles tab -> Advanced -> Custom CSS
+                -> Save, then Publish.
+
+   ----------------------------------------------------------------------------
+   READ THIS BEFORE EDITING
+
+   GoHighLevel does not use what you paste verbatim. It prefixes every selector
+   with `#_builder-form `, the id on the form's own wrapper. That one fact
+   dictates everything below, and it is why the first version of this file did
+   nothing:
+
+     * `:root { --orange: #d14a22 }` becomes `#_builder-form :root { ... }`.
+       :root is <html>, an ANCESTOR of the wrapper, so it never matches, every
+       custom property is undefined, and every `var(--orange)` resolves to
+       nothing. Worse, those declarations still win the cascade on !important
+       and then compute to nothing -- which is how a rule that "sets" the submit
+       button's colour ends up making it transparent.
+       => No custom properties anywhere in this file. Literal values only.
+
+     * `html`, `body` and `form` all become descendants of the wrapper and stop
+       matching. (There is no <form> element in GHL's markup at all.)
+       => Hooks must be elements INSIDE the wrapper. `.fields-container` is the
+          outermost one available, so the logo hangs off that.
+
+   GHL also ships its own !important rules at high specificity, e.g.
+   `#_builder-form .form-builder--item input[type="text"][class="form-control"]`
+   -- one id, three class-level, one element. Plain `.form-control` loses to it.
+   The field rules below repeat `.form-control` to climb past it. It is ugly and
+   it is deliberate; do not "tidy" it away.
+
+   ----------------------------------------------------------------------------
+   SET THESE IN THE STYLES PANEL, NOT HERE
+
+   Two things would not hold from CSS when this was tested against the live
+   form, even at a specificity nothing else in the page could beat:
+
+     * the submit button's background
+     * the field border colour and corner radius
+
+   Both are written by the builder as INLINE styles, and the platform re-asserts
+   them. Rules for both are kept below so the file describes the whole design in
+   one place, but set them in the builder's own controls as well -- that is the
+   supported route and it is the one that actually sticks:
+
+     Styles -> Button    background #D14A22, text #FFFFFF, radius 999px,
+                         full width
+     Styles -> Fields    border #DDD9D6, radius 12px
+
+   What this file reliably owns: the logo, label typography, the consent-line
+   reset, the Figtree/Playfair webfonts, textarea height, and focus rings.
+
+   Verified against the live form on 2026-10-13 by injecting these rules with
+   GHL's prefix applied and reading the computed styles back.
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;1,500&display=swap');
+
+/* --- the logo -----------------------------------------------------------
+   OFF on purpose. The popup this form is embedded in already shows the logo
+   in its own header, above the "Contact us" heading -- our markup, our
+   stylesheet, sharper than a background image. Switching this on puts a
+   second one directly above the Name field, underneath that heading.
+
+   Turn it back on if the form is ever used on its own, outside the popup:
+   as a GHL-hosted page, in an email, or embedded anywhere that has no header
+   of its own. It is decorative, so it is drawn rather than placed as an image
+   field -- nothing to tab to, nothing for a screen reader to announce. The
+   URL has to be absolute and public, since the iframe is not on our domain.
+
+.fields-container::before {
+  content: "";
+  display: block;
+  width: 52px;
+  height: 48px;
+  margin: 0 auto 18px;
+  background: url("https://rubibodadoo1313.github.io/wbb-website-redesign/assets/img/logo.png") center / contain no-repeat;
+}
+
+------------------------------------------------------------------------- */
+
+/* --- field labels -------------------------------------------------------
+   Scoped to .field-label on purpose. A bare `label` selector also catches the
+   consent checkbox, and a four-line SMS disclosure set in letterspaced caps is
+   unreadable. */
+.field-label {
+  font-family: Figtree, "Segoe UI", Helvetica, Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: .06em !important;
+  text-transform: uppercase !important;
+  color: #4a4643 !important;
+  margin-bottom: 6px !important;
+}
+
+/* the consent checkbox's own label: sentence case, quiet, readable */
+label:not(.field-label) {
+  font-family: Figtree, "Segoe UI", Helvetica, Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  line-height: 1.45 !important;
+  color: #77716c !important;
+}
+
+/* --- fields -------------------------------------------------------------
+   The doubled .form-control is the specificity climb described at the top. */
+.fields-container .form-builder--item input.form-control.form-control,
+.fields-container .form-builder--item textarea.form-control.form-control,
+.fields-container .form-builder--item select.form-control.form-control {
+  font-family: Figtree, "Segoe UI", Helvetica, Arial, sans-serif !important;
+  font-size: 15px !important;
+  padding: .78em .95em !important;
+  border: 1px solid #ddd9d6 !important;
+  border-color: #ddd9d6 !important;      /* the shorthand alone loses here */
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #1a1817 !important;
+  box-shadow: none !important;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.fields-container .form-builder--item textarea.form-control.form-control {
+  min-height: 104px !important;
+  line-height: 1.5 !important;
+  resize: vertical !important;
+}
+
+.fields-container .form-builder--item input.form-control.form-control::placeholder,
+.fields-container .form-builder--item textarea.form-control.form-control::placeholder {
+  color: #77716c !important;
+  opacity: 1 !important;                 /* Firefox dims placeholders by default */
+}
+
+.fields-container .form-builder--item input.form-control.form-control:focus,
+.fields-container .form-builder--item textarea.form-control.form-control:focus,
+.fields-container .form-builder--item select.form-control.form-control:focus {
+  outline: none !important;
+  border-color: #d14a22 !important;
+  box-shadow: 0 0 0 3px rgba(209, 74, 34, .14) !important;
+}
+
+/* --- submit -------------------------------------------------------------
+   GHL writes the button's colour, radius and padding as an INLINE style from
+   the builder's Button panel, and an inline style beats any stylesheet rule
+   that is not !important. These rules do carry !important so they win, but the
+   Button panel is the supported place to set this -- set it there as well, so
+   the builder's own preview matches what ships.
+
+   Panel values: background #D14A22, text #FFFFFF, radius 999px, full width. */
+.btn.button-element,
+.form-builder--item button.btn.button-element.button-element {
+  background: #d14a22 !important;
+  background-color: #d14a22 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: .95em 1.5em !important;
+  font-family: Figtree, "Segoe UI", Helvetica, Arial, sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  box-shadow: 0 8px 22px rgba(209, 74, 34, .28) !important;
+  transition: background-color .25s, box-shadow .25s;
+}
+
+.btn.button-element:hover,
+.form-builder--item button.btn.button-element.button-element:hover {
+  background: #b93d18 !important;
+  background-color: #b93d18 !important;
+  box-shadow: 0 12px 28px rgba(209, 74, 34, .36) !important;
+}
+
+/* A visible focus ring is the only way a keyboard user can tell where they
+   are; the hover colour alone does not tell them. */
+.btn.button-element:focus-visible {
+  outline: 2px solid #1a1817 !important;
+  outline-offset: 3px !important;
+}
+
+/* --- phones -------------------------------------------------------------
+   16px on inputs is what stops iOS Safari zooming the page on focus. */
+@media (max-width: 540px) {
+  .fields-container .form-builder--item input.form-control.form-control,
+  .fields-container .form-builder--item textarea.form-control.form-control {
+    font-size: 16px !important;
+  }
+  .field-label { font-size: 11.5px !important; }
+  .btn.button-element { font-size: 14px !important; }
+}

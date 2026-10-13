@@ -365,33 +365,22 @@
 /* ---------- contact modal ------------------------------------------------
    The header "Contact us" button on every page opens this.
 
-   Sending: the page is static and cannot send mail on its own, so the form is
-   handed to Netlify Forms. Netlify scrapes the form out of the deployed HTML —
-   that is what name="contact" and data-netlify="true" on the <form> are for —
-   then catches the POST below and emails it on. The recipient is set once in
-   the Netlify dashboard under Site settings → Forms → Form notifications, not
-   here in the code.
+   Sending: the dialog holds an embedded GoHighLevel form, which is a
+   cross-origin iframe. It validates itself, posts to GHL from inside that
+   frame, and creates the contact there. None of it passes through this file,
+   and nothing here can reach into the frame to help or interfere.
 
-   Two consequences worth knowing:
-
-   1. It only works on the deployed Netlify site. Opened from a local preview,
-      or from any other host, nothing is listening for that POST.
-   2. So a failure hands the enquiry to a pre-filled Gmail compose window
-      rather than dropping it. That covers local previews and real network
-      trouble alike — the visitor still gets their message to us.
+   So this module is only the dialog around it: open, close, the focus trap,
+   and Escape. If the embed fails to load the popup still opens -- on an empty
+   panel, which is the honest failure rather than a dead button.
 -------------------------------------------------------------------------- */
 (function () {
   'use strict';
 
-  var CONTACT_TO = 'itwbb@gmail.com';      // only used by the Gmail fallback
-
   var modal = document.getElementById('contact-modal');
-  var form  = document.getElementById('contact-form');
-  if (!modal || !form) return;
+  if (!modal) return;
 
   var root    = document.documentElement;
-  var status  = form.querySelector('.cform__status');
-  var submit  = form.querySelector('.cform__submit');
   var openers = document.querySelectorAll('[data-open-contact]');
   var closers = modal.querySelectorAll('[data-close-contact]');
   var focusBack = null;
@@ -400,7 +389,7 @@
   /* ---------- open / close ---------- */
   function focusables() {
     return Array.prototype.filter.call(
-      modal.querySelectorAll('button,[href],input:not([tabindex="-1"]),textarea'),
+      modal.querySelectorAll('button,[href],input:not([tabindex="-1"]),textarea,iframe'),
       function (el) { return !el.disabled && el.offsetParent !== null; }
     );
   }
@@ -412,7 +401,10 @@
     root.classList.add('cmodal-open');
     modal.classList.add('is-open');
     modal.removeAttribute('aria-hidden');
-    var first = form.querySelector('#cf-name');
+    /* the embed owns its own fields and this document cannot focus into
+       another origin, so focus lands on the close button -- never left
+       behind on the page underneath, which is what traps a keyboard user */
+    var first = modal.querySelector('.cmodal__close');
     if (first) window.setTimeout(function () { first.focus(); }, 60);
   }
 
@@ -448,104 +440,12 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 
-  /* ---------- validation ---------- */
-  var RULES = [
-    { id: 'cf-name',    msg: 'Please tell us your name.' },
-    { id: 'cf-email',   msg: 'Please enter a valid email address.',
-      test: function (v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); } },
-    { id: 'cf-message', msg: 'Let us know what you need.' }
-  ];
+  /* Validation, the Netlify POST and the Gmail fallback used to live here.
+     The embedded GoHighLevel form owns all three now: it validates its own
+     fields, posts to GHL from inside its iframe, and never touches this
+     page's JavaScript. What remains above is the popup that holds it.
+     Recover the old code from git history if the embed is ever rolled back. */
 
-  function setError(field, message) {
-    var box = document.getElementById(field.id + '-err');
-    if (box) box.textContent = message || '';
-    if (message) field.setAttribute('aria-invalid', 'true');
-    else field.removeAttribute('aria-invalid');
-  }
-
-  function validate() {
-    var firstBad = null;
-    RULES.forEach(function (rule) {
-      var field = document.getElementById(rule.id);
-      if (!field) return;
-      var value = field.value.trim();
-      var ok = value !== '' && (!rule.test || rule.test(value));
-      setError(field, ok ? '' : rule.msg);
-      if (!ok && !firstBad) firstBad = field;
-    });
-    return firstBad;
-  }
-
-  // clear a field's error as soon as the visitor starts fixing it
-  form.addEventListener('input', function (e) {
-    if (e.target.getAttribute('aria-invalid') === 'true') setError(e.target, '');
-  });
-
-  /* ---------- submit ---------- */
-  function values() {
-    return {
-      name:    form.querySelector('#cf-name').value.trim(),
-      email:   form.querySelector('#cf-email').value.trim(),
-      phone:   form.querySelector('#cf-phone').value.trim(),
-      message: form.querySelector('#cf-message').value.trim()
-    };
-  }
-
-  function say(text, kind) {
-    status.textContent = text;
-    status.className = 'cform__status' + (kind ? ' is-' + kind : '');
-  }
-
-  function gmailFallback(v) {
-    var body =
-      'Name: '  + v.name  + '\n' +
-      'Email: ' + v.email + '\n' +
-      'Phone: ' + (v.phone || '-') + '\n\n' +
-      'What can we help you with?\n' + v.message + '\n';
-    var url = 'https://mail.google.com/mail/?' + [
-      'view=cm', 'fs=1', 'tf=1',
-      'to=' + encodeURIComponent(CONTACT_TO),
-      'su=' + encodeURIComponent('Website enquiry from ' + v.name),
-      'body=' + encodeURIComponent(body)
-    ].join('&');
-    window.open(url, '_blank', 'noopener');
-  }
-
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    var honey = form.querySelector('[name="botcheck"]');
-    if (honey && honey.checked) return;                 // bot
-
-    var bad = validate();
-    if (bad) { bad.focus(); say('', ''); return; }
-
-    var v = values();
-
-    submit.disabled = true;
-    say('Sending...', '');
-
-    /* Netlify takes the submission as a form-encoded POST to the site root.
-       form-name (a hidden input in the markup) is how it tells which form
-       this is, so post the whole form rather than a hand-built body. */
-    fetch('/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(new FormData(form)).toString()
-    })
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        say('Thanks - we have got it and will be in touch shortly.', 'ok');
-        form.reset();
-        window.setTimeout(function () { closeModal(); say('', ''); }, 2600);
-      })
-      .catch(function () {
-        // never strand the enquiry: hand it to Gmail instead
-        gmailFallback(v);
-        say('We could not send that automatically, so we have opened your email instead.', 'bad');
-      })
-      .then(function () { submit.disabled = false; });
-  });
 })();
 
 /* ---------- case study: creator video rail ----------------------------

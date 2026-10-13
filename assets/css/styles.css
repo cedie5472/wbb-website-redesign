@@ -1502,50 +1502,25 @@ html{scrollbar-color:rgba(26,24,23,.3) transparent}
   font-size:var(--fs-body);line-height:1.45;
 }
 
-/* ---------- the form ---------- */
-.cform{display:grid;gap:14px}
-.cform__row{display:grid;gap:6px}
-.cform label{
-  font-size:clamp(11px,.85vw,13px);font-weight:600;
-  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);
-}
-.cform label .opt{font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-3)}
-.cform input:not(.sr-only),.cform textarea{
-  width:100%;
-  padding:.78em .95em;
-  border:1px solid rgba(26,24,23,.18);
-  border-radius:12px;
-  background:#fff;color:var(--ink);
-  font-size:var(--fs-body);font-family:inherit;
-  transition:border-color .2s,box-shadow .2s;
-}
-.cform textarea{min-height:104px;resize:vertical;line-height:1.5}
-.cform input::placeholder,.cform textarea::placeholder{color:var(--ink-3)}
-.cform input:not(.sr-only):focus,.cform textarea:focus{
-  outline:none;border-color:var(--orange);
-  box-shadow:0 0 0 3px rgba(209,74,34,.14);
-}
-.cform input[aria-invalid="true"],.cform textarea[aria-invalid="true"]{
-  border-color:#c0392b;box-shadow:0 0 0 3px rgba(192,57,43,.12);
-}
-.cform__err{
-  min-height:0;font-size:clamp(11px,.85vw,12.5px);color:#c0392b;
-}
-.cform__err:empty{display:none}
+/* ---------- the form ----------
+   The fields, labels, validation messages and submit button used to live
+   here. They are gone: the popup now carries a GoHighLevel embed, and an
+   iframe is cross-origin, so nothing in this stylesheet can reach inside it.
+   The form's own styling lives in ghl-contact-form.css, which is pasted into
+   the GHL form builder rather than served from here.
 
-.cform__submit{
-  justify-content:center;width:100%;margin-top:4px;
-  padding-block:.95em;
+   What is left is the frame around it. */
+.cform--ghl{
+  /* the embed script measures the form and writes a height back onto the
+     iframe; min-height is only what it stands at before that lands, so the
+     popup does not visibly jump on open */
+  min-height:620px;
 }
-.cform__submit[disabled]{opacity:.6;pointer-events:none}
-
-.cform__status{
-  margin-top:2px;text-align:center;
-  font-size:var(--fs-body);line-height:1.45;color:var(--ink-2);
+.cform--ghl iframe{
+  display:block;width:100%;min-height:620px;border:0;
+  /* the panel behind it is cream; a white iframe would read as a second card */
+  background:transparent;
 }
-.cform__status:empty{display:none}
-.cform__status.is-ok{color:#1e7a4d}
-.cform__status.is-bad{color:#c0392b}
 
 /* the popup owns the viewport while it is open */
 html.cmodal-open,html.cmodal-open body{overflow:hidden}

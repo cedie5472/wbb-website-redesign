@@ -401,52 +401,28 @@
       <p class="cmodal__sub">Tell us a little about what you need and we&rsquo;ll come back to you.</p>
     </div>
 
-    <form class="cform" id="contact-form" name="contact" method="POST"
-            data-netlify="true" data-netlify-honeypot="botcheck" novalidate>
-        <!-- Netlify reads this to label the submission -->
-        <input type="hidden" name="form-name" value="contact">
-      <div class="cform__row">
-        <label for="cf-name">Name</label>
-        <input id="cf-name" name="name" type="text" autocomplete="name"
-               placeholder="Your full name" required
-               aria-describedby="cf-name-err">
-        <p class="cform__err" id="cf-name-err"></p>
-      </div>
-
-      <div class="cform__row">
-        <label for="cf-email">Email</label>
-        <input id="cf-email" name="email" type="email" autocomplete="email"
-               placeholder="you@company.com" required
-               aria-describedby="cf-email-err">
-        <p class="cform__err" id="cf-email-err"></p>
-      </div>
-
-      <div class="cform__row">
-        <label for="cf-phone">Phone <span class="opt">(optional)</span></label>
-        <input id="cf-phone" name="phone" type="tel" autocomplete="tel"
-               placeholder="+63 912 345 6789"
-               aria-describedby="cf-phone-err">
-        <p class="cform__err" id="cf-phone-err"></p>
-      </div>
-
-      <div class="cform__row">
-        <label for="cf-message">What can we help you with?</label>
-        <textarea id="cf-message" name="message" required
-                  placeholder="A few lines about your brand and what you are looking for."
-                  aria-describedby="cf-message-err"></textarea>
-        <p class="cform__err" id="cf-message-err"></p>
-      </div>
-
-      <!-- honeypot: bots fill it, people never see it -->
-      <input type="checkbox" name="botcheck" class="sr-only" tabindex="-1" autocomplete="off" aria-hidden="true">
-
-      <button class="btn btn--primary cform__submit" type="submit">Submit</button>
-      <p class="cform__status" role="status" aria-live="polite"></p>
-    </form>
+    <div class="cform cform--ghl">
+          <iframe
+            src="https://api.leadconnectorhq.com/widget/form/AcUYCxIWkG9c2IoRmFOn"
+            id="inline-AcUYCxIWkG9c2IoRmFOn"
+            title="Contact form"
+            data-layout="{'id':'INLINE'}"
+            data-trigger-type="alwaysShow"
+            data-trigger-value=""
+            data-activation-type="alwaysActivated"
+            data-activation-value=""
+            data-deactivation-type="neverDeactivate"
+            data-deactivation-value=""
+            data-form-name="What can we help you with"
+            data-height="620"
+            data-layout-iframe-id="inline-AcUYCxIWkG9c2IoRmFOn"
+            data-form-id="AcUYCxIWkG9c2IoRmFOn"></iframe>
+        </div>
   </div>
 </div>
 
 <script src="assets/js/main.js?v=5"></script>
+<script src="https://link.msgsndr.com/js/form_embed.js" defer></script>
 
 
 </body>
