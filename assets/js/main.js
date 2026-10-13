@@ -206,6 +206,7 @@
       root.classList.add('vmodal-open');
       modal.classList.add('is-open');
       modal.removeAttribute('aria-hidden');
+      modal.removeAttribute('inert');
       remember(SEEN_KEY);                   // seen once, never nagged again
 
       var first = modal.querySelector('.vmodal__close');
@@ -221,6 +222,12 @@
       open = false;
       modal.classList.remove('is-open');
       modal.setAttribute('aria-hidden', 'true');
+      /* inert takes the whole subtree out of hit-testing and the tab order.
+         pointer-events:none on the overlay alone was not enough: a descendant
+         can set pointer-events:auto back on itself and become an invisible
+         click target over the page -- which is exactly what GHL's embed
+         script did to the form inside the closed dialog. */
+      modal.setAttribute('inert', '');
       root.classList.remove('vmodal-open');
       if (popup) popup.stop();
       if (focusBack && typeof focusBack.focus === 'function') focusBack.focus();
@@ -403,6 +410,7 @@
       root.classList.add('cmodal-open');
       modal.classList.add('is-open');
       modal.removeAttribute('aria-hidden');
+      modal.removeAttribute('inert');
       /* the embed owns its own fields and this document cannot focus into
          another origin, so focus lands on the close button -- never left
          behind on the page underneath, which is what traps a keyboard user */
@@ -416,11 +424,19 @@
       if (live === api) live = null;
       modal.classList.remove('is-open');
       modal.setAttribute('aria-hidden', 'true');
+      /* inert takes the whole subtree out of hit-testing and the tab order.
+         pointer-events:none on the overlay alone is not enough: a descendant
+         can set pointer-events:auto back on itself and become an invisible
+         click target over the page, which is what GHL's embed script did to
+         the form inside the closed dialog. */
+      modal.setAttribute('inert', '');
       root.classList.remove('cmodal-open');
       if (focusBack && typeof focusBack.focus === 'function') focusBack.focus();
     }
 
     var api = { open: open, close: close, isOpen: function () { return isOpen; } };
+
+    if (!modal.classList.contains('is-open')) modal.setAttribute('inert', '');
 
     Array.prototype.forEach.call(modal.querySelectorAll(closeSelector), function (btn) {
       btn.addEventListener('click', close);

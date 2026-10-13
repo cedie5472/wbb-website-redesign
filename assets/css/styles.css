@@ -1472,6 +1472,9 @@ html{scrollbar-color:rgba(26,24,23,.3) transparent}
   transition:opacity .34s ease,visibility 0s linear .34s;
 }
 .cmodal.is-open{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s,0s}
+/* Belt and braces for browsers without inert: a descendant cannot set
+   pointer-events back on itself and become an invisible click target. */
+.cmodal:not(.is-open),.cmodal:not(.is-open) *{pointer-events:none!important}
 
 .cmodal__dialog{
   position:relative;
