@@ -362,90 +362,128 @@
   updateArrows();
 })();
 
-/* ---------- contact modal ------------------------------------------------
-   The header "Contact us" button on every page opens this.
+/* ---------- popup dialogs -------------------------------------------------
+   Two of them, and they work the same way: the "Contact us" popup in the
+   header of every page, and the "Apply for this role" popup on Careers.
 
-   Sending: the dialog holds an embedded GoHighLevel form, which is a
-   cross-origin iframe. It validates itself, posts to GHL from inside that
-   frame, and creates the contact there. None of it passes through this file,
-   and nothing here can reach into the frame to help or interfere.
+   Both hold an embedded GoHighLevel form, which is a cross-origin iframe. It
+   validates itself, posts to GHL from inside that frame, and creates the
+   contact or the application there. None of it passes through this file, and
+   nothing here can reach into the frame to help or interfere.
 
-   So this module is only the dialog around it: open, close, the focus trap,
-   and Escape. If the embed fails to load the popup still opens -- on an empty
-   panel, which is the honest failure rather than a dead button.
+   So this module is only the dialogs around them: open, close, the focus
+   trap, Escape. If an embed fails to load the popup still opens, on an empty
+   panel -- the honest failure rather than a dead button.
 -------------------------------------------------------------------------- */
 (function () {
   'use strict';
 
-  var modal = document.getElementById('contact-modal');
-  if (!modal) return;
+  var root = document.documentElement;
+  var live = null;                       // only one dialog is ever open
 
-  var root    = document.documentElement;
-  var openers = document.querySelectorAll('[data-open-contact]');
-  var closers = modal.querySelectorAll('[data-close-contact]');
-  var focusBack = null;
-  var isOpen = false;
+  function wire(modal, closeSelector) {
+    if (!modal) return null;
 
-  /* ---------- open / close ---------- */
-  function focusables() {
-    return Array.prototype.filter.call(
-      modal.querySelectorAll('button,[href],input:not([tabindex="-1"]),textarea,iframe'),
-      function (el) { return !el.disabled && el.offsetParent !== null; }
-    );
+    var focusBack = null;
+    var isOpen = false;
+
+    function focusables() {
+      return Array.prototype.filter.call(
+        modal.querySelectorAll('button,[href],input:not([tabindex="-1"]),textarea,iframe'),
+        function (el) { return !el.disabled && el.offsetParent !== null; }
+      );
+    }
+
+    function open() {
+      if (isOpen) return;
+      if (live && live !== api) live.close();
+      isOpen = true;
+      live = api;
+      focusBack = document.activeElement;
+      root.classList.add('cmodal-open');
+      modal.classList.add('is-open');
+      modal.removeAttribute('aria-hidden');
+      /* the embed owns its own fields and this document cannot focus into
+         another origin, so focus lands on the close button -- never left
+         behind on the page underneath, which is what traps a keyboard user */
+      var first = modal.querySelector('.cmodal__close');
+      if (first) window.setTimeout(function () { first.focus(); }, 60);
+    }
+
+    function close() {
+      if (!isOpen) return;
+      isOpen = false;
+      if (live === api) live = null;
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      root.classList.remove('cmodal-open');
+      if (focusBack && typeof focusBack.focus === 'function') focusBack.focus();
+    }
+
+    var api = { open: open, close: close, isOpen: function () { return isOpen; } };
+
+    Array.prototype.forEach.call(modal.querySelectorAll(closeSelector), function (btn) {
+      btn.addEventListener('click', close);
+    });
+
+    // clicking the dark surround closes; clicking the dialog does not
+    modal.addEventListener('mousedown', function (e) {
+      if (e.target === modal) close();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (!isOpen) return;
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key !== 'Tab') return;
+      var items = focusables();
+      if (!items.length) return;
+      var first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+
+    return api;
   }
 
-  function openModal() {
-    if (isOpen) return;
-    isOpen = true;
-    focusBack = document.activeElement;
-    root.classList.add('cmodal-open');
-    modal.classList.add('is-open');
-    modal.removeAttribute('aria-hidden');
-    /* the embed owns its own fields and this document cannot focus into
-       another origin, so focus lands on the close button -- never left
-       behind on the page underneath, which is what traps a keyboard user */
-    var first = modal.querySelector('.cmodal__close');
-    if (first) window.setTimeout(function () { first.focus(); }, 60);
+  /* ---------- contact ---------- */
+  var contact = wire(document.getElementById('contact-modal'), '[data-close-contact]');
+  if (contact) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-open-contact]'), function (btn) {
+      btn.addEventListener('click', function () { contact.open(); });
+    });
   }
 
-  function closeModal() {
-    if (!isOpen) return;
-    isOpen = false;
-    modal.classList.remove('is-open');
-    modal.setAttribute('aria-hidden', 'true');
-    root.classList.remove('cmodal-open');
-    if (focusBack && typeof focusBack.focus === 'function') focusBack.focus();
+  /* ---------- apply for a role ----------
+     One dialog serves all six roles. Which role was clicked is carried on the
+     button and passed to the form as a query parameter, which GHL reads to
+     preselect its "Position applying for" field -- so nobody has to tell us
+     twice which job they are applying for.
+
+     The iframe has no src until the dialog is first opened. A careers page
+     that silently downloaded a form nobody asked for would cost every visitor
+     the weight of it just for reading the job descriptions. */
+  var applyModal = document.getElementById('apply-modal');
+  var apply = wire(applyModal, '[data-close-apply]');
+  if (apply) {
+    var frame   = applyModal.querySelector('iframe');
+    var heading = applyModal.querySelector('[data-apply-role]');
+    var base    = frame.getAttribute('data-src');
+    var key     = frame.getAttribute('data-role-field');
+    var loaded  = null;
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-open-apply]'), function (btn) {
+      btn.addEventListener('click', function () {
+        var role = btn.getAttribute('data-role') || '';
+        if (heading) heading.textContent = role;
+        // reloading the frame resets a part-filled form, so only on a new role
+        if (base && role !== loaded) {
+          frame.src = base + (key ? '?' + encodeURIComponent(key) + '=' + encodeURIComponent(role) : '');
+          loaded = role;
+        }
+        apply.open();
+      });
+    });
   }
-
-  Array.prototype.forEach.call(openers, function (btn) {
-    btn.addEventListener('click', openModal);
-  });
-  Array.prototype.forEach.call(closers, function (btn) {
-    btn.addEventListener('click', closeModal);
-  });
-
-  // clicking the dark surround closes; clicking the dialog does not
-  modal.addEventListener('mousedown', function (e) {
-    if (e.target === modal) closeModal();
-  });
-
-  document.addEventListener('keydown', function (e) {
-    if (!isOpen) return;
-    if (e.key === 'Escape') { closeModal(); return; }
-    if (e.key !== 'Tab') return;
-    var items = focusables();
-    if (!items.length) return;
-    var first = items[0], last = items[items.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-  });
-
-  /* Validation, the Netlify POST and the Gmail fallback used to live here.
-     The embedded GoHighLevel form owns all three now: it validates its own
-     fields, posts to GHL from inside its iframe, and never touches this
-     page's JavaScript. What remains above is the popup that holds it.
-     Recover the old code from git history if the embed is ever rolled back. */
-
 })();
 
 /* ---------- case study: creator video rail ----------------------------
