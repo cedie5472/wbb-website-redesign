@@ -1,0 +1,43 @@
+# =============================================================================
+# Clean URLs on Apache.
+#
+# The site is served from two hosts that disagree about routing:
+#
+#   GitHub Pages  resolves /activities to activities.html on its own.
+#   Apache        does not, so every link in the nav 404s without this file.
+#
+# GitHub Pages ignores .htaccess, so this is inert there and does the work on
+# Hostinger. One repo, both hosts, no divergence between them.
+#
+# Wrapped in <IfModule> on purpose: an .htaccess containing a directive the
+# server does not recognise returns 500 for the WHOLE site, not just the page
+# that needed it. If mod_rewrite is missing this file does nothing instead of
+# taking everything down, and the symptom stays the 404s we already have.
+# =============================================================================
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # ---- 1. Retire the .html addresses ---------------------------------------
+  # Guarded by REDIRECT_STATUS so the internal rewrite in section 2 cannot
+  # re-trigger these. Without the guard /activities rewrites to activities.html,
+  # which looks like a .html request, which redirects to /activities, forever.
+
+  # /index.html -> /
+  RewriteCond %{ENV:REDIRECT_STATUS} ^$
+  RewriteCond %{THE_REQUEST} \s/+index\.html[\s?] [NC]
+  RewriteRule ^ / [R=301,L]
+
+  # /activities.html -> /activities
+  RewriteCond %{ENV:REDIRECT_STATUS} ^$
+  RewriteCond %{THE_REQUEST} \s/+([^\s?]+?)\.html[\s?] [NC]
+  RewriteRule ^ /%1 [R=301,L]
+
+  # ---- 2. Serve activities.html for /activities ----------------------------
+  # Only when the request is not already a real file or directory, and only
+  # when the .html actually exists -- so assets and genuine 404s are untouched.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+  RewriteRule ^(.+?)/?$ /$1.html [L]
+</IfModule>
