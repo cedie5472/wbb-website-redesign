@@ -1,0 +1,15 @@
+name: Sync fork with upstream
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # every 6 hours; change as needed
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync main with rubibodadoo1313/wbb-website-redesign
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
+        run: gh repo sync cedie5472/wbb-website-redesign --branch main
