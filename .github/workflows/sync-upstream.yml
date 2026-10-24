@@ -2,7 +2,7 @@ name: Sync fork with upstream
 
 on:
   schedule:
-    - cron: cron: "0 18 * * *"   # daily at 18:00 UTC = 2:00 AM Philippine time
+    - cron: "0 18 * * *"   # daily at 18:00 UTC = 2:00 AM Philippine time
   workflow_dispatch:
 
 jobs:
